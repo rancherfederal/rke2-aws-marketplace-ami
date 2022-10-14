@@ -1,0 +1,85 @@
+{
+
+  "variables": {
+    "aws_region": "",
+    "vpc_id": "",
+    "subnet_id": "",
+
+    "rke2_version": "v1.23.10+rke2r1",
+
+    "ami_name": "mp-rancher",
+    "ami_description": "An image for Rancher in the Marketplace",
+
+    "source_ami": "ami-09615784cc72bd590",
+    "source_ami_name": "suse-sles-15*",
+    "source_ami_owner": "309956199498",
+    "source_ami_owner_govcloud": "886417891176",
+    "source_ami_ssh_user": "ec2-user",
+
+    "http_proxy": "",
+    "https_proxy": "",
+    "no_proxy": "",
+
+    "hardening": "stig",
+    "encrypted": "false",
+    "kms_key_id": ""
+  },
+
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "{{user `aws_region`}}",
+      "ami_regions": "us-gov-east-1",
+      "source_ami": "{{ user `source_ami` }}",
+      "instance_type": "m5.large",
+      "associate_public_ip_address": true,
+      "ssh_username": "{{user `source_ami_ssh_user`}}",
+      "ssh_timeout": "30m",
+      "subnet_id": "{{user `subnet_id`}}",
+      "tags": {
+        "Name": "rke2-{{user `ami_name`}}-{{user `hardening`}}-{{ timestamp }}",
+        "BuildDate": "{{ isotime }}",
+        "RKE2-Version": "{{user `rke2_version`}}",
+        "RKE2-BuildDate": "{{user `rke2_build_date`}}",
+        "Hardening": "{{user `hardening`}}"
+      },
+      "ami_name": "rke2-{{user `ami_name`}}-{{ timestamp }}",
+      "ami_description": "{{user `ami_description` }}",
+      "ami_virtualization_type": "hvm",
+      "run_tags": {
+        "Name": "packer-builder-rke2-{{user `ami_name`}}-{{user `hardening`}}-ami"
+      }
+    }
+  ],
+
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "scripts/init-rancher.sh",
+      "destination": "/tmp/init-rancher.sh"
+    },
+    {
+      "type": "file",
+      "source": "charts",
+      "destination": "/tmp/charts"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo chmod +x /tmp/init-rancher.sh",
+        "sudo mv /tmp/init-rancher.sh /usr/local/bin/init-rancher.sh",
+        "sudo mv /tmp/charts /charts"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo wget https://get.helm.sh/helm-v3.10.1-linux-amd64.tar.gz",
+        "sudo tar zxvf helm-v3.10.1-linux-amd64.tar.gz",
+        "sudo mv linux-amd64/helm /usr/bin/helm",
+        "sudo chmod +x /usr/bin/helm",
+        "sudo rm -rf linux-amd64 helm-v3.10.1-linux-amd64.tar.gz"
+      ]
+    }
+  ]
+}
