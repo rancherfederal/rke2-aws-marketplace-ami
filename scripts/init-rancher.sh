@@ -4,8 +4,8 @@ RANCHER_HOST=$1
 RKE2_VERSION="v1.23.10+rke2r1"
 
 if [[ -z "$RANCHER_HOST" ]]; then
-    echo "ERROR: Missing 'RANCHER_HOST' environment variable."
-    exit 1
+    echo "No hostname specified. Using Public IP instead."
+    RANCHER_HOST=$(curl -s http://ifconfig.me)
 fi
 
 echo ""
