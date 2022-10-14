@@ -78,7 +78,8 @@
         "sudo tar zxvf helm-v3.10.1-linux-amd64.tar.gz",
         "sudo mv linux-amd64/helm /usr/bin/helm",
         "sudo chmod +x /usr/bin/helm",
-        "sudo rm -rf linux-amd64 helm-v3.10.1-linux-amd64.tar.gz"
+        "sudo rm -rf linux-amd64 helm-v3.10.1-linux-amd64.tar.gz",
+        "sudo zypper install -y jq"
       ]
     }
   ]

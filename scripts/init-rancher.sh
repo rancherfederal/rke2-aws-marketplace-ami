@@ -31,11 +31,14 @@ echo "====================================="
 echo "2) Waiting for cluster to be ready.."
 echo "====================================="
 echo "Waiting for DaemonSet to be created.."
-until [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml kubectl get pods --no-headers -n kube-system -l app.kubernetes.io/name=rke2-ingress-nginx | wc -l | awk '{ print $1 }') -gt 0 ]]; do
+until KUBECONFIG=/etc/rancher/rke2/rke2.yaml kubectl get daemonset -n kube-system rke2-ingress-nginx-controller > /dev/null 2>&1; do
     sleep 3
 done
+
 echo "Waiting for pods to be ready.."
-KUBECONFIG=/etc/rancher/rke2/rke2.yaml kubectl wait pods -n kube-system -l app.kubernetes.io/name=rke2-ingress-nginx --for condition=Ready --timeout=300s
+until [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml kubectl get ds -n kube-system rke2-ingress-nginx-controller -o json | jq -r '.status.numberReady') == $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml kubectl get ds -n kube-system rke2-ingress-nginx-controller -o json | jq -r '.status.desiredNumberScheduled') ]]; do
+    sleep 3
+done
 
 echo ""
 echo "====================================="
