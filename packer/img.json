@@ -29,7 +29,7 @@
     {
       "type": "amazon-ebs",
       "region": "{{user `aws_region`}}",
-      "ami_regions": "us-gov-east-1",
+      "ami_regions": "{{user `aws_region`}}",
       "source_ami": "{{ user `source_ami` }}",
       "instance_type": "m5.large",
       "associate_public_ip_address": true,
@@ -60,6 +60,11 @@
     },
     {
       "type": "file",
+      "source": "scripts/init-rke2.sh",
+      "destination": "/tmp/init-rke2.sh"
+    },
+    {
+      "type": "file",
       "source": "charts",
       "destination": "/tmp/charts"
     },
@@ -68,6 +73,8 @@
       "inline": [
         "sudo chmod +x /tmp/init-rancher.sh",
         "sudo mv /tmp/init-rancher.sh /usr/local/bin/init-rancher.sh",
+        "sudo chmod +x /tmp/init-rke2.sh",
+        "sudo mv /tmp/init-rke2.sh /usr/local/bin/init-rke2.sh",
         "sudo mv /tmp/charts /charts"
       ]
     },
@@ -82,6 +89,15 @@
         "sudo wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64",
         "sudo mv jq-linux64 /usr/bin/jq",
         "sudo chmod +x /usr/bin/jq"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo wget -O /tmp/install_rke2.sh https://get.rke2.io",
+        "sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_VERSION={{user `rke2_version`}} INSTALL_RKE2_TYPE=server sh /tmp/install_rke2.sh",
+        "sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_VERSION={{user `rke2_version`}} INSTALL_RKE2_TYPE=agent sh /tmp/install_rke2.sh",
+        "sudo rm -f /tmp/install_rke2.sh"
       ]
     }
   ]
