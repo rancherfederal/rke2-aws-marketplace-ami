@@ -28,8 +28,6 @@ timestamp() {
 config() {
   mkdir -p "/etc/rancher/rke2"
   cat <<EOF > "/etc/rancher/rke2/config.yaml"
-tls-san:
-  - ${SERVER_URL}
 token: ${JOIN_TOKEN}
 EOF
 }
@@ -135,6 +133,15 @@ upload() {
   if [ $SERVER_TYPE = "server" ]; then
     identify
 
+    cat <<EOF >> "/etc/rancher/rke2/config.yaml"
+tls-san:
+  - ${SERVER_URL}
+node-taint:
+  - "CriticalAddonsOnly=true:NoExecute"
+node-label:
+  - "category=controlplane"
+EOF
+
     if [ $SERVER_TYPE = "server" ]; then     # additional server joining an existing cluster
       append_config "server: https://${SERVER_URL}:9345"
       # Wait for cluster to exist, then init another server
@@ -157,6 +164,8 @@ upload() {
     fi
   else
     append_config 'server: https://${server_url}:9345'
+
+    cp_wait
 
     # Default to agent
     systemctl enable rke2-agent
