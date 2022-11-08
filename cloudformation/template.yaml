@@ -3,6 +3,16 @@ Description: AWS CloudFormation for Installing Rancher through the RGS Marketpla
   Offering
 
 Parameters:
+  ControlPlaneCount:
+    Description: Number of Controlplane Nodes (must be an odd number)
+    Type: Number
+    MinValue: '1'
+    Default: '3'
+  WorkerCount:
+    Description: Number of Worker Nodes
+    Type: Number
+    MinValue: '1'
+    Default: '3'
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: AWS::EC2::KeyPair::KeyName
@@ -321,10 +331,10 @@ Resources:
   ###############
   # Autoscaling #
   ###############
-  RancherLaunchTemplate:
+  RancherCPLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: RancherLaunchTemplate
+      LaunchTemplateName: RancherCPLaunchTemplate
       LaunchTemplateData:
         IamInstanceProfile:
           Arn: !GetAtt 'RancherInstanceProfile.Arn'
@@ -353,6 +363,7 @@ Resources:
               - !Join
                 - ' '
                 - - init-rke2.sh
+                  - 'server'
                   - !Ref 'ClusterJoinToken'
                   - !GetAtt 'ControlPlaneELB.DNSName'
                   - !Ref 'AWS::Region'
@@ -364,18 +375,18 @@ Resources:
                   - !Ref 'RancherHostname'
                   - !Ref 'RancherBoostrapPassword'
               - "\n"
-  RancherAutoScalingGroup:
+  RancherCPAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       LaunchTemplate:
-        LaunchTemplateId: !Ref 'RancherLaunchTemplate'
-        Version: !GetAtt 'RancherLaunchTemplate.LatestVersionNumber'
+        LaunchTemplateId: !Ref 'RancherCPLaunchTemplate'
+        Version: !GetAtt 'RancherCPLaunchTemplate.LatestVersionNumber'
       LoadBalancerNames:
         - !Ref 'ControlPlaneELB'
         - !Ref 'RancherELB'
-      MaxSize: '3'
-      MinSize: '3'
-      DesiredCapacity: '3'
+      MaxSize: !Ref 'ControlPlaneCount'
+      MinSize: !Ref 'ControlPlaneCount'
+      DesiredCapacity: !Ref 'ControlPlaneCount'
       VPCZoneIdentifier:
         - !Ref 'RancherPrivateSubnet1'
         - !Ref 'RancherPrivateSubnet2'
@@ -385,7 +396,68 @@ Resources:
           Value: !Join
             - ' '
             - - !Ref 'AWS::StackName'
-              - ASG
+              - CP ASG
+          PropagateAtLaunch: true
+
+  RancherWorkerLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: RancherWorkerLaunchTemplate
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Arn: !GetAtt 'RancherInstanceProfile.Arn'
+        DisableApiTermination: 'true'
+        ImageId: !FindInMap
+          - AWSRegionArch2AMI
+          - !Ref 'AWS::Region'
+          - HVM64
+        InstanceType: !Ref 'InstanceType'
+        SecurityGroupIds:
+          - !GetAtt 'RancherCPSecurityGroup.GroupId'
+          - !GetAtt 'RancherIngressSecurityGroup.GroupId'
+        KeyName: !Ref 'KeyName'
+        BlockDeviceMappings:
+          - Ebs:
+              VolumeSize: !Ref 'VolumeSize'
+              VolumeType: gp2
+              DeleteOnTermination: true
+              Encrypted: true
+            DeviceName: /dev/sda1
+        UserData: !Base64
+          Fn::Join:
+            - ''
+            - - "#!/bin/bash -xe\n"
+              - "echo 'Initializing RKE2..'\n"
+              - !Join
+                - ' '
+                - - init-rke2.sh
+                  - 'agent'
+                  - !Ref 'ClusterJoinToken'
+                  - !GetAtt 'ControlPlaneELB.DNSName'
+                  - !Ref 'AWS::Region'
+              - "\n"
+  RancherWorkerAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref 'RancherWorkerLaunchTemplate'
+        Version: !GetAtt 'RancherWorkerLaunchTemplate.LatestVersionNumber'
+      LoadBalancerNames:
+        - !Ref 'ControlPlaneELB'
+        - !Ref 'RancherELB'
+      MaxSize: !Ref 'WorkerCount'
+      MinSize: !Ref 'WorkerCount'
+      DesiredCapacity: !Ref 'WorkerCount'
+      VPCZoneIdentifier:
+        - !Ref 'RancherPrivateSubnet1'
+        - !Ref 'RancherPrivateSubnet2'
+        - !Ref 'RancherPrivateSubnet3'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ' '
+            - - !Ref 'AWS::StackName'
+              - Worker ASG
           PropagateAtLaunch: true
 
   #############

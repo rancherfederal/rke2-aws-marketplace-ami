@@ -1,9 +1,9 @@
 #!/bin/sh
 
-export SERVER_TYPE="server"
-export JOIN_TOKEN="$1"
-export SERVER_URL="$2"
-export AWS_DEFAULT_REGION="$3"
+export SERVER_TYPE="$1"
+export JOIN_TOKEN="$2"
+export SERVER_URL="$3"
+export AWS_DEFAULT_REGION="$4"
 
 # info logs the given argument at info log level.
 info() {
@@ -131,26 +131,36 @@ upload() {
 
 {
   config
-  identify
 
-  if [ $SERVER_TYPE = "server" ]; then     # additional server joining an existing cluster
-    append_config "server: https://${SERVER_URL}:9345"
-    # Wait for cluster to exist, then init another server
-    cp_wait
-  fi
+  if [ $SERVER_TYPE = "server" ]; then
+    identify
 
-  systemctl enable rke2-server
-  systemctl daemon-reload
-  systemctl start rke2-server
+    if [ $SERVER_TYPE = "server" ]; then     # additional server joining an existing cluster
+      append_config "server: https://${SERVER_URL}:9345"
+      # Wait for cluster to exist, then init another server
+      cp_wait
+    fi
 
-  export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
-  export PATH=$PATH:/var/lib/rancher/rke2/bin
+    systemctl enable rke2-server
+    systemctl daemon-reload
+    systemctl start rke2-server
 
-  if [ $SERVER_TYPE = "leader" ]; then
-    # Upload kubeconfig to s3 bucket
-    # upload
+    export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+    export PATH=$PATH:/var/lib/rancher/rke2/bin
 
-    # For servers, wait for apiserver to be ready before continuing so that `post_userdata` can operate on the cluster
-    local_cp_api_wait
+    if [ $SERVER_TYPE = "leader" ]; then
+      # Upload kubeconfig to s3 bucket
+      # upload
+
+      # For servers, wait for apiserver to be ready before continuing so that `post_userdata` can operate on the cluster
+      local_cp_api_wait
+    fi
+  else
+    append_config 'server: https://${server_url}:9345'
+
+    # Default to agent
+    systemctl enable rke2-agent
+    systemctl daemon-reload
+    systemctl start rke2-agent
   fi
 }
