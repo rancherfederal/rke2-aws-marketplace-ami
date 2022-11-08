@@ -31,11 +31,16 @@
           "MaxLength": "200",
           "NoEcho": true
       },
+      "RancherBoostrapPassword" : {
+        "Description" : "Temporary initializing password for Rancher.",
+        "Type" : "String",
+        "Default" : "admin"
+      },
       "InstanceType" : {
-        "Description" : "WebServer EC2 instance type",
+        "Description" : "Rancher EC2 instance type",
         "Type" : "String",
         "Default" : "m5.large",
-        "AllowedValues" : [ "m5.large", "m5.2xlarge" ],
+        "AllowedValues" : [ "m5.large", "m5.xlarge", "m5.2xlarge" ],
         "ConstraintDescription" : "must be a valid EC2 instance type."
       },
       "SSHLocation" : {
@@ -60,8 +65,8 @@
     "Mappings": {
       "AWSRegionArch2AMI" : {
         "us-gov-east-1": {
-          "HVM64": "ami-003f9297314d6c5d1"
-          },
+          "HVM64": "ami-033277a8576a02e7f"
+        },
         "us-gov-west-1": {
           "HVM64": "ami-05aaa50d3cae6007d"
         }
@@ -259,7 +264,8 @@
             "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" }, "HVM64" ] },
             "InstanceType"   : { "Ref" : "InstanceType" },
             "SecurityGroupIds" : [ 
-              { "Fn::GetAtt" : ["RancherSecurityGroup", "GroupId"] }
+              { "Fn::GetAtt" : ["RancherCPSecurityGroup", "GroupId"] },
+              { "Fn::GetAtt" : ["RancherIngressSecurityGroup", "GroupId"] }
             ],
             "KeyName": { "Ref" : "KeyName" },
             "BlockDeviceMappings":[{
@@ -276,7 +282,7 @@
               "echo 'Initializing RKE2..'\n",
               { "Fn::Join": [" ", ["init-rke2.sh", { "Ref": "ClusterJoinToken" }, { "Fn::GetAtt" : [ "ControlPlaneELB", "DNSName" ] }, { "Ref" : "AWS::Region" }]]}, "\n",
               "echo 'Initializing Rancher..'\n",
-              { "Fn::Join": [" ", ["init-rancher.sh", { "Ref": "RancherHostname"}]]}, "\n"
+              { "Fn::Join": [" ", ["init-rancher.sh", { "Ref": "RancherHostname"}, { "Ref": "RancherBoostrapPassword"}]]}, "\n"
             ]]}}
           }
         }
@@ -299,7 +305,16 @@
               { "Ref" : "RancherSubnet1" },
               { "Ref" : "RancherSubnet2" },
               { "Ref" : "RancherSubnet3" }
-            ]
+            ],
+            "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": {
+                    "Fn::Join": [" ", [{ "Ref": "AWS::StackName" }, "ASG"]]
+                  },
+                  "PropagateAtLaunch": true
+              }
+          ]
         }
       },
       "RancherInstanceRole": {
@@ -407,7 +422,19 @@
             ]
         }
     },
-      "RancherSecurityGroup" : {
+    "RancherCPSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "VpcId": { "Ref": "RancherVPC" },
+        "GroupDescription" : "Enable HTTP/HTTPS access via port 80/443",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "9345", "ToPort" : "9345", "SourceSecurityGroupId" : {"Fn::GetAtt": ["ControlPlaneELBSG", "GroupId"]}},
+          {"IpProtocol" : "tcp", "FromPort" : "6443", "ToPort" : "6443", "CidrIp" : "0.0.0.0/0"},
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "SSHLocation"}}
+        ]
+      }      
+    },
+    "RancherIngressSecurityGroup" : {
         "Type" : "AWS::EC2::SecurityGroup",
         "Properties" : {
           "VpcId": { "Ref": "RancherVPC" },
@@ -415,10 +442,7 @@
           "SecurityGroupIngress" : [
             {"IpProtocol" : "tcp", "FromPort" : "30080", "ToPort" : "30080", "SourceSecurityGroupId" : {"Fn::GetAtt": ["RancherELBSG", "GroupId"]}},
             {"IpProtocol" : "tcp", "FromPort" : "30443", "ToPort" : "30443", "SourceSecurityGroupId" : {"Fn::GetAtt": ["RancherELBSG", "GroupId"]}},
-            {"IpProtocol" : "tcp", "FromPort" : "9345", "ToPort" : "9345", "SourceSecurityGroupId" : {"Fn::GetAtt": ["ControlPlaneELBSG", "GroupId"]}},
-            {"IpProtocol" : "tcp", "FromPort" : "1", "ToPort" : "65535", "CidrIp" : { "Fn::Join": [ "", [{ "Ref": "VPCCidr" }, ".11.0/24"]]}},
-            {"IpProtocol" : "tcp", "FromPort" : "6443", "ToPort" : "6443", "CidrIp" : "0.0.0.0/0"},
-            {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "SSHLocation"}}
+            {"IpProtocol" : "-1", "FromPort" : "0", "ToPort" : "65535", "SourceSecurityGroupId" : {"Fn::GetAtt": ["RancherCPSecurityGroup", "GroupId"]}}
           ]
         }      
       },

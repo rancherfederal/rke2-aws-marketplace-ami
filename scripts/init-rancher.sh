@@ -1,6 +1,7 @@
 #!/bin/bash
 
 RANCHER_HOST=$1
+RANCHER_BOOTSTRAP_PASSWORD=$2
 
 echo ""
 echo "====================================="
@@ -69,6 +70,7 @@ if [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm status -n cattle-system ranc
   cat <<EOT > /tmp/rancher-values.yaml
 hostname: $RANCHER_HOST
 replicas: 3
+bootstrapPassword: $RANCHER_BOOTSTRAP_PASSWORD
 EOT
 
   KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm install --namespace cattle-system -f /tmp/rancher-values.yaml rancher /charts/rancher-2.6.8.tgz
