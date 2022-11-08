@@ -71,7 +71,7 @@ Parameters:
 Mappings:
   AWSRegionArch2AMI:
     us-gov-east-1:
-      HVM64: ami-033277a8576a02e7f
+      HVM64: ami-07bc9c06c835cfffa
     us-gov-west-1:
       HVM64: ami-05aaa50d3cae6007d
   AWSRegion2AZ:
@@ -383,7 +383,6 @@ Resources:
         Version: !GetAtt 'RancherCPLaunchTemplate.LatestVersionNumber'
       LoadBalancerNames:
         - !Ref 'ControlPlaneELB'
-        - !Ref 'RancherELB'
       MaxSize: !Ref 'ControlPlaneCount'
       MinSize: !Ref 'ControlPlaneCount'
       DesiredCapacity: !Ref 'ControlPlaneCount'
