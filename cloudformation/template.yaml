@@ -71,7 +71,7 @@ Parameters:
 Mappings:
   AWSRegionArch2AMI:
     us-gov-east-1:
-      HVM64: ami-085fd56f8d0581540
+      HVM64: ami-09daa57a72c481c8b
     us-gov-west-1:
       HVM64: ami-05aaa50d3cae6007d
   AWSRegion2AZ:
@@ -83,6 +83,7 @@ Mappings:
       '1': us-gov-west-1a
       '2': us-gov-west-1b
       '3': us-gov-west-1c
+
 Resources:
 
   #######
@@ -624,7 +625,7 @@ Resources:
   ControlPlaneELB:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
     Properties:
-      Subnets:
+      Subnets: 
         - !Ref 'RancherPublicSubnet1'
         - !Ref 'RancherPublicSubnet2'
         - !Ref 'RancherPublicSubnet3'

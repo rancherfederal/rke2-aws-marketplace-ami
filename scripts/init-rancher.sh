@@ -36,11 +36,11 @@ if [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm status -n cert-manager cert-
 fi
 
 if [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm status -n kube-system aws-cloud-controller-manager -o json 2>/dev/null | jq -r '.info.status') != "deployed" ]]; then
-  echo ""
-  echo "====================================="
-  echo "3) Configuring AWS Cloud Provider.."
-  echo "====================================="
-  KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm install --namespace kube-system --create-namespace aws-cloud-controller-manager /charts/aws-cloud-controller-manager-0.0.7.tgz
+  # echo ""
+  # echo "====================================="
+  # echo "3) Configuring AWS Cloud Provider.."
+  # echo "====================================="
+  # KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm install --namespace kube-system --create-namespace aws-cloud-controller-manager /charts/aws-cloud-controller-manager-0.0.7.tgz
 
   echo ""
   echo "======================================================="
