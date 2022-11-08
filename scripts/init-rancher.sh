@@ -32,7 +32,7 @@ if [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm status -n cert-manager cert-
   echo "====================================="
   echo "3) Installing cert-manager (v1.7.1).."
   echo "====================================="
-  KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm install --namespace cert-manager --create-namespace --set installCRDs=true cert-manager /charts/cert-manager-v1.7.1.tgz
+  KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm install --wait --namespace cert-manager --create-namespace --set installCRDs=true cert-manager /charts/cert-manager-v1.7.1.tgz
 fi
 
 if [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm status -n kube-system aws-cloud-controller-manager -o json 2>/dev/null | jq -r '.info.status') != "deployed" ]]; then
