@@ -163,7 +163,7 @@ EOF
       local_cp_api_wait
     fi
   else
-    append_config 'server: https://${SERVER_URL}:9345'
+    append_config "server: https://${SERVER_URL}:9345"
 
     cp_wait
 
