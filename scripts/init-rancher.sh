@@ -33,6 +33,9 @@ if [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm status -n cert-manager cert-
   echo "3) Installing cert-manager (v1.7.1).."
   echo "====================================="
   KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm install --wait --namespace cert-manager --create-namespace --set installCRDs=true cert-manager /charts/cert-manager-v1.7.1.tgz
+
+  # Wait for cert-manager pods to ensure Rancher can install issuer
+  kubectl wait --for=condition=Ready pods --all -n cert-manager
 fi
 
 if [[ $(KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm status -n kube-system aws-cloud-controller-manager -o json 2>/dev/null | jq -r '.info.status') != "deployed" ]]; then
@@ -72,6 +75,6 @@ hostname: $RANCHER_HOST
 replicas: 3
 bootstrapPassword: $RANCHER_BOOTSTRAP_PASSWORD
 EOT
-
+  sleep 10
   KUBECONFIG=/etc/rancher/rke2/rke2.yaml helm install --namespace cattle-system -f /tmp/rancher-values.yaml rancher /charts/rancher-2.6.8.tgz
 fi
