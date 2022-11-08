@@ -401,6 +401,8 @@ Resources:
 
   RancherWorkerLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
+    DependsOn:
+      - RancherCPAutoScalingGroup
     Properties:
       LaunchTemplateName: RancherWorkerLaunchTemplate
       LaunchTemplateData:
@@ -438,6 +440,8 @@ Resources:
               - "\n"
   RancherWorkerAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - RancherCPAutoScalingGroup
     Properties:
       LaunchTemplate:
         LaunchTemplateId: !Ref 'RancherWorkerLaunchTemplate'
